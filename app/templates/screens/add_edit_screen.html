@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>{{ title }}</h1>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.name.label }}
+            {{ form.name(class="form-control") }}
+            {% if form.name.errors %}
+                {% for error in form.name.errors %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        <div class="form-group">
+            {{ form.event_id.label }}
+            {{ form.event_id(class="form-control") }}
+            {% if form.event_id.errors %}
+                {% for error in form.event_id.errors %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Item Input for Suggestions -->
+        <div class="form-group">
+            <label for="itemInput">Item Name</label>
+            <input type="text" id="itemInput" class="form-control" autocomplete="off">
+            <div id="itemSuggestions" class="list-group"></div> <!-- Suggestions will appear here -->
+        </div>
+
+        <!-- Table for Selected Items -->
+        <table class="table" id="selectedItems">
+            <thead>
+            <tr>
+                <th>Item Name</th>
+                <th>Priority</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- Selected items will be added here -->
+            </tbody>
+        </table>
+
+        <button type="submit" class="btn btn-success">Save</button>
+    </form>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let itemCount = 0; // To keep track of added items
+            const input = document.getElementById('itemInput');
+            const suggestionsContainer = document.getElementById('itemSuggestions');
+
+            input.addEventListener('input', function () {
+                const query = this.value;
+                if (query.length < 2) { // Min character length to start showing suggestions
+                    suggestionsContainer.innerHTML = '';
+                    return;
+                }
+                // Fetch item suggestions
+                fetch(`/items/item_suggestions?query=${query}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        suggestionsContainer.innerHTML = '';
+                        data.forEach(item => {
+                            const div = document.createElement('div');
+                            div.className = 'list-group-item list-group-item-action';
+                            div.textContent = item.name;
+                            div.addEventListener('click', () => selectItem(item));
+                            suggestionsContainer.appendChild(div);
+                        });
+                    });
+            });
+
+            // Function to handle selection of an item from suggestions or rendering existing items
+            function selectItem(item, isExisting = false) {
+                const tableBody = document.getElementById('selectedItems').getElementsByTagName('tbody')[0];
+                const row = tableBody.insertRow();
+                const cellName = row.insertCell(0);
+                const cellPriority = row.insertCell(1);
+                const cellActions = row.insertCell(2);
+
+                cellName.textContent = isExisting ? item.item_name : item.name;
+
+                const priorityInput = document.createElement('input');
+                priorityInput.type = 'number';
+                priorityInput.name = `items[${itemCount}][priority]`;
+                priorityInput.value = isExisting ? item.priority : '0';
+                priorityInput.className = 'form-control';
+                priorityInput.style = "max-width: 100px;";
+                cellPriority.appendChild(priorityInput);
+
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = `items[${itemCount}][id]`;
+                hiddenInput.value = isExisting ? item.item_id : item.id;
+                cellName.appendChild(hiddenInput);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'btn btn-danger btn-sm';
+                deleteButton.textContent = 'Delete';
+                deleteButton.onclick = function () {
+                    row.parentNode.removeChild(row);
+                };
+                cellActions.appendChild(deleteButton);
+
+                suggestionsContainer.innerHTML = '';
+                input.value = '';
+                itemCount++;
+            }
+
+            // Render existing items if any
+            {% if existing_items %}
+                let existingItems = {{ existing_items | tojson | safe }};
+                existingItems.forEach(item => {
+                    selectItem(item, true);
+                });
+            {% endif %}
+        });
+    </script>
+
+{% endblock %}

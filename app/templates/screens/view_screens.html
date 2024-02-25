@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Screens List</h1>
+<!-- Row for buttons -->
+<div class="d-flex justify-content-between mb-3">
+    <a href="{{ url_for('screen.add_screen') }}" class="btn btn-primary">Add Screen</a>
+    <!-- Placeholder for alignment -->
+    <button form="bulkDeleteForm" type="submit" class="btn btn-danger">Delete Selected</button>
+</div>
+
+<!-- Form begins -->
+<form id="bulkDeleteForm" action="{{ url_for('screen.bulk_delete_screens') }}" method="post">
+    {{ form.hidden_tag() }}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Actions</th>
+                <th scope="col"><input type="checkbox" id="checkAll"></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for screen in screens %}
+            <tr>
+                <td>{{ screen.name }}</td>
+                <td>
+                    <a href="{{ url_for('screen.view_screen', screen_id=screen.id) }}" class="btn btn-sm btn-primary">View</a>
+                    <a href="{{ url_for('screen.edit_screen', screen_id=screen.id) }}" class="btn btn-sm btn-info">Edit</a>
+                </td>
+                <td><input type="checkbox" name="selected_screens" value="{{ screen.id }}"></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</form>
+<script>
+    document.getElementById('checkAll').onclick = function() {
+        var checkboxes = document.getElementsByName('selected_screens');
+        for (var checkbox of checkboxes) {
+            checkbox.checked = this.checked;
+        }
+    }
+</script>
+{% endblock %}

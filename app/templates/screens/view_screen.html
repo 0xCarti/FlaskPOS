@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <style>
+    .container {
+        max-width: unset;
+        padding: unset;
+    }
+
+        /* Custom styles for larger elements and hidden navbar */
+        nav.navbar {
+            display: none;
+        }
+
+        .form-control, .btn, .list-group-item, .transaction-total, #itemsBox {
+            font-size: 20px; /* Larger text for visibility */
+            padding: 15px; /* Larger padding for easier touch */
+        }
+
+        .transaction-total {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .item-entry.selected {
+            background-color: #f0ad4e; /* Highlight selected items */
+            color: white;
+        }
+
+        #itemsBox {
+            display: flex;
+            flex-direction: column;
+            max-height: 200px; /* Fixed maximum height */
+            min-height: 200px;
+            overflow-y: auto; /* Enable vertical scrolling */
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+
+        #itemsBox::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+        }
+
+        .item-entry {
+            display: block; /* Ensure each item is treated as a block-level element */
+            width: 100%; /* Ensure each item fills the container */
+            margin-bottom: 5px; /* Space between items */
+            cursor: pointer; /* Visual cue for interactiveness */
+        }
+
+        .item-entry.selected {
+            background-color: #f0ad4e; /* Highlight color for selected items */
+            color: white;
+        }
+
+        /* Custom button styles to remove space and corner rounding */
+        #voidButton, #subtotalButton {
+            border-radius: 0 !important; /* Remove rounding */
+            height: 200px;
+        }
+
+        /* Full height for the container, assuming no other siblings in body */
+        .container-fluid {
+            display: grid;
+            grid-template-rows: auto 1fr; /* Top row auto height, rest takes available space */
+            height: 100vh; /* Full viewport height */
+            gap: 0; /* Adjust based on your design */
+        }
+
+        /* Grid for items */
+        .row.mt-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Adjust minmax for your desired button size */
+            gap: 0; /* Adjust based on your design */
+            overflow: auto; /* For safety, if content does exceed height */
+            width: 100%;
+            margin: 0; /* Override Bootstrap margins */
+            padding: 0; /* Adjust if needed */
+        }
+
+        /* Adjustments for button */
+        .screen-item-btn {
+            height: 100%; /* Make button fill cell height */
+            border-radius: 0; /* Square edges */
+            margin: 0px; /* Remove spacing between buttons */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 0px;
+            padding: 0px;
+        }
+
+        .mb-3 {
+            margin-bottom: 0px !important;
+        }
+    </style>
+
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <!-- Item Box -->
+            <div class="col-md-6" style="padding: 0px; border: black solid 1px;">
+                <div id="itemsBox" class="border p-3">
+                    <!-- Dynamically added items will go here -->
+                </div>
+            </div>
+
+            <!-- Transaction Total -->
+            <div class="col-md-2 transaction-total" style="background-color: darkgray; padding: 0px; height: 202px; border: black solid 1px;">
+                Total: $<span id="transactionTotal">0.00</span>
+            </div>
+
+            <!-- Void Button -->
+            <div class="col-md-2" style="padding: 0px; border: black solid 1px;">
+                <button id="voidButton" class="btn btn-danger btn-lg btn-block">Void</button>
+            </div>
+
+            <!-- Subtotal Button -->
+            <div class="col-md-2" style="padding: 0px; border: black solid 1px;">
+                <button id="subtotalButton" class="btn btn-primary btn-lg btn-block">Subtotal</button>
+            </div>
+        </div>
+
+        <!-- Grid of Screen Items below the top row -->
+        <div class="row">
+            {% for item in screen_items %}
+                <div class="col-md-3 mb-3" style="padding: 0px; border: black solid 1px;">
+                    <button class="btn btn-secondary btn-lg btn-block screen-item-btn" data-item-id="{{ item.item_id }}"
+                            data-item-name="{{ item.item.name }}" data-item-price="{{ item.item.price }}">
+                        {{ item.item.name }}
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const itemsBox = document.getElementById('itemsBox');
+            const transactionTotalEl = document.getElementById('transactionTotal');
+            let transactionTotal = 0;
+            let transactionItems = [];
+
+            document.querySelectorAll('.screen-item-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const itemName = this.getAttribute('data-item-name');
+                    const itemPrice = parseFloat(this.getAttribute('data-item-price'));
+                    const itemId = this.getAttribute('data-item-id');
+                    addItemToTransaction(itemId, itemName, itemPrice);
+                });
+            });
+
+            document.getElementById('voidButton').addEventListener('click', voidItem);
+
+            // document.getElementById('subtotalButton').addEventListener('click', submitTransaction);
+
+            function addItemToTransaction(itemId, name, price) {
+                transactionItems.push({itemId, name, price});
+                updateItemsDisplay();
+                updateTransactionTotal();
+            }
+
+            function updateItemsDisplay() {
+                // Temporarily store the new HTML content
+                let newContent = document.createDocumentFragment();
+                transactionItems.forEach(item => {
+                    const itemEl = document.createElement('div');
+                    itemEl.textContent = `${item.name} - $${item.price.toFixed(2)}`;
+                    itemEl.className = 'item-entry';
+                    itemEl.setAttribute('data-item-id', item.itemId);
+                    itemEl.onclick = function () {
+                        this.classList.toggle('selected');
+                    };
+                    newContent.insertBefore(itemEl, newContent.firstChild);
+                });
+
+                // Clear the box and prepend the new content
+                itemsBox.innerHTML = '';
+                itemsBox.appendChild(newContent);
+            }
+
+            function updateTransactionTotal() {
+                transactionTotal = transactionItems.reduce((sum, item) => sum + item.price, 0);
+                transactionTotalEl.textContent = transactionTotal.toFixed(2);
+            }
+
+            function voidItem() {
+                const selectedItems = document.querySelectorAll('.item-entry.selected');
+                if (selectedItems.length > 0) {
+                    // Void the selected item
+                    selectedItems.forEach(selectedItem => {
+                        const itemIdToVoid = selectedItem.getAttribute('data-item-id');
+                        transactionItems = transactionItems.filter(item => item.itemId !== itemIdToVoid);
+                    });
+                } else {
+                    // Void the first item if no item is selected
+                    transactionItems.pop();
+                }
+                updateItemsDisplay();
+                updateTransactionTotal();
+            }
+
+            // Function to submit the transaction (for future implementation)
+            // function submitTransaction() {
+            //     // Logic to handle transaction submission
+            // }
+        });
+    </script>
+
+
+{% endblock %}

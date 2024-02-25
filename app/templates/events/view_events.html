@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Events List</h1>
+<!-- Row for buttons -->
+<div class="d-flex justify-content-between mb-3">
+    <div class="d-flex align-items-center">
+        <a href="{{ url_for('event.add_event') }}" class="btn btn-primary mr-2" style="white-space: nowrap;">Add
+            Event</a>
+        <!-- Form wrapping the select box for filter -->
+        <form action="{{ url_for('event.view_events') }}" method="get" class="d-inline-block">
+            <select class="custom-select" id="filterSelect" name="filter" onchange="this.form.submit()">
+                <option value="all" {% if request.args.get(
+                'filter', 'open') == 'all' %}selected{% endif %}>All</option>
+                <option value="open" {% if request.args.get(
+                'filter', 'open') == 'open' %}selected{% endif %}>Open</option>
+                <option value="closed" {% if request.args.get(
+                'filter', 'open') == 'closed' %}selected{% endif %}>Closed</option>
+            </select>
+        </form>
+    </div>
+    <button form="bulkDeleteForm" type="submit" class="btn btn-danger">Delete Selected</button>
+</div>
+
+<form id="bulkDeleteForm" action="{{ url_for('event.bulk_delete_events') }}" method="post">
+    {{ form.hidden_tag() }}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Actions</th>
+                    <th scope="col"><input type="checkbox" id="checkAll"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in events %}
+                <tr>
+                    <td>{{ event.name }}</td>
+                    <td>
+                        <a href="{{ url_for('event.view_event', event_id=event.id) }}" class="btn btn-sm btn-primary">View</a>
+                        <a href="{{ url_for('event.edit_event', event_id=event.id) }}" class="btn btn-sm btn-info">Edit</a>
+                        <!-- Update to use <a> tag for toggle status -->
+                        <a href="{{ url_for('event.toggle_event_status', event_id=event.id) }}" class="btn btn-sm {{ 'btn-success' if event.closed else 'btn-warning' }}">
+                            {{ 'Open' if event.closed else 'Close' }}
+                        </a>
+                    </td>
+                    <td><input type="checkbox" name="selected_events" value="{{ event.id }}"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</form>
+<script>
+    document.getElementById('checkAll').onclick = function() {
+        var checkboxes = document.getElementsByName('selected_events');
+        for (var checkbox of checkboxes) {
+            checkbox.checked = this.checked;
+        }
+    }
+</script>
+{% endblock %}
