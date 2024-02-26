@@ -2,10 +2,10 @@
 
 {% block content %}
     <style>
-    .container {
-        max-width: unset;
-        padding: unset;
-    }
+        .container {
+            max-width: unset;
+            padding: unset;
+        }
 
         /* Custom styles for larger elements and hidden navbar */
         nav.navbar {
@@ -107,7 +107,8 @@
             </div>
 
             <!-- Transaction Total -->
-            <div class="col-md-2 transaction-total" style="background-color: darkgray; padding: 0px; height: 202px; border: black solid 1px;">
+            <div class="col-md-2 transaction-total"
+                 style="background-color: darkgray; padding: 0px; height: 202px; border: black solid 1px;">
                 Total: $<span id="transactionTotal">0.00</span>
             </div>
 
@@ -137,6 +138,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            var csrf_token = "{{ csrf_token() }}";
+
             const itemsBox = document.getElementById('itemsBox');
             const transactionTotalEl = document.getElementById('transactionTotal');
             let transactionTotal = 0;
@@ -153,8 +156,6 @@
 
             document.getElementById('voidButton').addEventListener('click', voidItem);
 
-            // document.getElementById('subtotalButton').addEventListener('click', submitTransaction);
-
             function addItemToTransaction(itemId, name, price) {
                 transactionItems.push({itemId, name, price});
                 updateItemsDisplay();
@@ -162,7 +163,6 @@
             }
 
             function updateItemsDisplay() {
-                // Temporarily store the new HTML content
                 let newContent = document.createDocumentFragment();
                 transactionItems.forEach(item => {
                     const itemEl = document.createElement('div');
@@ -174,8 +174,6 @@
                     };
                     newContent.insertBefore(itemEl, newContent.firstChild);
                 });
-
-                // Clear the box and prepend the new content
                 itemsBox.innerHTML = '';
                 itemsBox.appendChild(newContent);
             }
@@ -188,25 +186,49 @@
             function voidItem() {
                 const selectedItems = document.querySelectorAll('.item-entry.selected');
                 if (selectedItems.length > 0) {
-                    // Void the selected item
                     selectedItems.forEach(selectedItem => {
                         const itemIdToVoid = selectedItem.getAttribute('data-item-id');
                         transactionItems = transactionItems.filter(item => item.itemId !== itemIdToVoid);
                     });
                 } else {
-                    // Void the first item if no item is selected
                     transactionItems.pop();
                 }
                 updateItemsDisplay();
                 updateTransactionTotal();
             }
 
-            // Function to submit the transaction (for future implementation)
-            // function submitTransaction() {
-            //     // Logic to handle transaction submission
-            // }
+            document.getElementById('subtotalButton').addEventListener('click', function () {
+                // Adjusted to ensure event_id is correctly fetched. Replace 'event_id_placeholder' with actual event ID.
+                const event_id = {{ screen.event_id }};
+                const screen_id = {{ screen.id }}
+                const transactionData = {
+                    event_id: event_id,
+                    screen_id: screen_id,
+                    items: transactionItems.map(item => ({itemId: item.itemId, price: item.price}))
+                };
+
+                fetch('/submit_transactions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(transactionData)
+                })
+                    .then(response => {
+                        return response.json();
+                    })
+                    .then(data => {
+                        if ("error" in data) {
+                            alert(data['error']);
+                        }
+                        transactionItems = [];
+                        updateItemsDisplay();
+                        updateTransactionTotal();
+                    });
+            });
         });
     </script>
+
 
 
 {% endblock %}

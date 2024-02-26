@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Transaction Details</h1>
+<div class="transaction-info">
+    <p><strong>Transaction ID:</strong> {{ transaction.id }}</p>
+    <p><strong>Event Name:</strong> {{ transaction.event.name }}</p> <!-- Adjusted to show event name -->
+    <p><strong>Screen Name:</strong> {{ transaction.screen.name }}</p> <!-- Adjusted to show screen name -->
+    <p><strong>Submitted At:</strong> {{ transaction.submitted_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+    <p><strong>Total:</strong> ${{ transaction.calculate_total() }}</p>
+</div>
+
+<h2>Items</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Item ID</th>
+            <th>Item Name</th>
+            <th>Price at Time of Sale</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in transaction.transaction_items %}
+        <tr>
+            <td>{{ item.item_id }}</td>
+            <td>{{ item.item.name }}</td> <!-- Assuming a relationship or backref from TransactionItem to Item -->
+            <td>${{ item.price_at_time_of_sale }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

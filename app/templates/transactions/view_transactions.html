@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Transactions List</h1>
+<!-- Optional: Row for filtering or additional actions -->
+<div class="d-flex justify-content-between mb-3">
+    <!-- Example: Link to a page for adding a new transaction (if applicable) -->
+    <!-- <a href="{{ url_for('transaction.view_transactions') }}" class="btn btn-primary">Add Transaction</a> -->
+    <!-- Placeholder for future actions or for alignment -->
+</div>
+
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">Transaction ID</th>
+                <th scope="col">Event ID</th>
+                <th scope="col">Screen ID</th>
+                <th scope="col">Submitted At</th>
+                <th scope="col">Total</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transaction in transactions %}
+            <tr>
+                <td>{{ transaction.id }}</td>
+                <td>{{ transaction.event_id }}</td>
+                <td>{{ transaction.screen_id }}</td>
+                <td>{{ transaction.submitted_at.strftime('%Y-%m-%d %H:%M:%S') }}</td> <!-- Formatting the date -->
+                <td>${{ transaction.calculate_total() }}</td>
+                <td>
+                    <!-- Example: Link to view transaction details -->
+                    <a href="{{ url_for('transaction.view_transaction', transaction_id=transaction.id) }}" class="btn btn-sm btn-primary">View</a>
+                    <!-- Additional actions like Edit or Delete can be added here -->
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

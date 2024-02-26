@@ -5,15 +5,17 @@ from os import getenv
 from flask_wtf import CSRFProtect
 
 db = SQLAlchemy()
+csrf = None
 
 
 def create_app():
+    global csrf
     app = Flask(__name__)
     app.config['SECRET_KEY'] = getenv('SECRET_KEY', 'a_default_secret')
     app.config['SQLALCHEMY_DATABASE_URI'] = getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///flaskpos.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    CSRFProtect(app)
+    csrf = CSRFProtect(app)
     db.init_app(app)
 
     with app.app_context():

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask_sqlalchemy import SQLAlchemy
 from app import db
 
@@ -21,11 +23,15 @@ class Event(db.Model):
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    # Relationship updated to use back_populates
+    screen_id = db.Column(db.Integer, db.ForeignKey('screen.id'))  # Assuming there's a Screen model
+    submitted_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    # Relationships
     transaction_items = db.relationship('TransactionItem', back_populates='transaction')
+    screen = db.relationship('Screen', back_populates='transactions')  # Assuming there's a back_populates in Screen model
 
     def calculate_total(self):
         return sum(item.price_at_time_of_sale for item in self.transaction_items)
+
 
 class Screen(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -33,6 +39,7 @@ class Screen(db.Model):
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     # Add cascade option to automatically delete associated ScreenItems
     items = db.relationship('ScreenItem', back_populates='screen', cascade="all, delete-orphan")
+    transactions = db.relationship('Transaction', back_populates='screen')
 
 class ScreenItem(db.Model):
     __tablename__ = 'screen_item'

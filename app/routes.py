@@ -1,8 +1,11 @@
 from sqlite3 import IntegrityError
 
 from flask import Blueprint, render_template, url_for, redirect, flash, request, jsonify
-from .forms import ItemForm, BulkDeleteForm, EventForm, ScreenForm
-from .models import db, Item, Event, Transaction, Screen, ScreenItem
+from sqlalchemy.orm import joinedload
+
+from . import csrf
+from .forms import ItemForm, BulkDeleteForm, EventForm, ScreenForm, ViewScreenForm
+from .models import db, Item, Event, Transaction, Screen, ScreenItem, TransactionItem
 
 item = Blueprint('item', __name__)
 event = Blueprint('event', __name__)
@@ -118,9 +121,18 @@ def view_event(event_id):
 
 @transaction.route('/transactions/view_transaction/<int:transaction_id>')
 def view_transaction(transaction_id):
-    transaction = Transaction.query.get_or_404(transaction_id)
-    # Assume there are additional details to pass to the template
-    return render_template('view_transaction.html', transaction=transaction)
+    transaction = Transaction.query.options(
+        joinedload(Transaction.event),
+        joinedload(Transaction.screen)
+    ).get_or_404(transaction_id)
+    return render_template('transactions/view_transaction.html', transaction=transaction)
+
+
+@transaction.route('/transactions')
+def view_transactions():
+    transactions = Transaction.query.all()  # Or apply filters as needed
+    form = BulkDeleteForm()
+    return render_template('transactions/view_transactions.html', transactions=transactions, form=form)
 
 
 @screen.route('/screens')
@@ -134,8 +146,9 @@ def view_screens():
 def view_screen(screen_id):
     screen = Screen.query.get_or_404(screen_id)
     # Assuming ScreenItem has 'item' relationship and 'priority' for ordering
+    form = ViewScreenForm()
     screen_items = sorted(screen.items, key=lambda si: si.priority)
-    return render_template('screens/view_screen.html', screen=screen, screen_items=screen_items)
+    return render_template('screens/view_screen.html', screen=screen, screen_items=screen_items, form=form)
 
 
 # Helper function to parse items from form data
@@ -255,3 +268,40 @@ def item_suggestions():
     query = request.args.get('query', '')
     items = Item.query.filter(Item.name.ilike(f'%{query}%')).all() if query else []
     return jsonify([{'id': item.id, 'name': item.name} for item in items])
+
+
+@transaction.route('/submit_transactions', methods=['POST'])
+@csrf.exempt
+def submit_transactions():
+    if not request.is_json:
+        return jsonify({'error': 'Request must be JSON'}), 400
+
+    data = request.get_json()
+    event_id = data.get('event_id')
+    screen_id = data.get('screen_id')  # Get screen_id from the request
+    items = data.get('items')
+
+    if not event_id or not items or not screen_id:
+        return jsonify({'error': 'Missing event ID, screen ID, or items'}), 400
+
+    try:
+        # Include screen_id when creating a new Transaction
+        new_transaction = Transaction(event_id=event_id, screen_id=screen_id)
+        db.session.add(new_transaction)
+        db.session.flush()  # Flush to assign an ID to new_transaction
+
+        for item in items:
+            item_id = item.get('itemId')
+            price = item.get('price')
+            new_transaction_item = TransactionItem(
+                transaction_id=new_transaction.id,
+                item_id=item_id,
+                price_at_time_of_sale=price
+            )
+            db.session.add(new_transaction_item)
+
+        db.session.commit()
+        return jsonify({'message': 'Transaction submitted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to submit transaction', 'details': str(e)}), 500

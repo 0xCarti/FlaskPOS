@@ -31,3 +31,7 @@ class ScreenForm(FlaskForm):
         super(ScreenForm, self).__init__(*args, **kwargs)
         # Dynamically set choices for event_id
         self.event_id.choices = [(e.id, e.name) for e in Event.query.order_by(Event.name).all()]
+
+class ViewScreenForm(FlaskForm):
+    # Assuming you don't need to define any specific fields for now
+    submit = SubmitField('Submit')

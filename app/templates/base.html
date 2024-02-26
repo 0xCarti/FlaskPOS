@@ -20,21 +20,24 @@
             <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('screen.view_screens') }}">Screens</a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('transaction.view_transactions') }}">Transactions</a>
+            </li>
         </ul>
     </div>
 </nav>
 <div class="container">
     {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        {% endfor %}
-    {% endif %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
     {% endwith %}
     {% block content %}
     {% endblock %}
@@ -44,9 +47,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.6/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script>
-    $(document).ready(function() {
-        setTimeout(function() {
-            $(".alert").slideUp(500, function(){
+    $(document).ready(function () {
+        setTimeout(function () {
+            $(".alert").slideUp(500, function () {
                 $(this).remove();
             });
         }, 1500);
